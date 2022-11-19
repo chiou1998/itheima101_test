@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mm.dao.CourseDao">
+        <insert id="addCourse" parameterType="com.itheima.mm.pojo.Course">
+            insert into t_course(name,createDate,isShow,userId,orderNo) values (#{name},#{createDate},#{isShow},#{userId},#{orderNo})
+        </insert>
+
+
+        <sql id="select_where">
+            <where>
+                <if test="queryParams.name != null and queryParams.name.length>0">
+                    and name like "%"#{queryParams.name}"%"
+                </if>
+                <if test="queryParams.status != null and queryParams.status.length>0">
+                    and isShow=#{queryParams.status}
+                </if>
+            </where>
+        </sql>
+        <select id="findTotal" parameterType="com.itheima.mm.entity.QueryPageBean" resultType="java.lang.Long">
+            select count(*) from t_course
+            <include refid="select_where"></include>
+        </select>
+
+        <select id="findPageList" parameterType="com.itheima.mm.entity.QueryPageBean" resultType="com.itheima.mm.pojo.Course">
+            select
+                id,
+                name,
+                (select username from t_user where id=c.userId) creator,
+                createDate,
+                isShow,
+                (select count(*) from t_catalog where courseId=c.id) catalogQty,
+                (select count(*) from t_tag where courseId=c.id) tagQty,
+                (select count(*) from t_question where courseId=c.id) questionQty
+                from t_course c
+            <include refid="select_where"></include>
+            limit #{offset},#{pageSize}
+        </select>
+
+        <update id="updateCourse" parameterType="com.itheima.mm.pojo.Course">
+            update t_course set name=#{name},isShow=#{isShow} where id=#{id}
+        </update>
+
+        <delete id="deleteById" parameterType="java.lang.Integer">
+            delete from t_course where id=#{id}
+        </delete>
+
+
+
+
+        <resultMap id="courseMap" type="com.itheima.mm.pojo.Course">
+            <id column="id" property="id"></id>
+            <collection property="catalogList" column="id" select="com.itheima.mm.dao.CatalogDao.findCatalogListByCourseId" fetchType="lazy"></collection>
+            <collection property="tagList" column="id" select="com.itheima.mm.dao.TagDao.findTagListByCourseId" fetchType="lazy"></collection>
+        </resultMap>
+        <select id="findAll" parameterType="java.util.Map" resultMap="courseMap">
+            select id,name from t_course
+            <where>
+                <if test="status != null">
+                    isShow=#{status}
+                </if>
+            </where>
+        </select>
+</mapper>
